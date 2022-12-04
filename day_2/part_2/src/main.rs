@@ -2,37 +2,45 @@ use std::fs;
 
 fn main() {
     let input = fs::read_to_string("..\\assets\\input.txt").expect("Could not Parse File");
-    let total_score = calculate_total_score(&input);
+    let total_score = solve(&input);
     println!("Final Score = {}", total_score);
 }
 
-fn calculate_total_score(input: &str) -> i32 {
-    let input = input.lines();
-    let mut total = 0;
-    for round in input {
-        let score = calculate_round_score(round);
-        total += score;
+fn solve(input: &str) -> i32 {
+    let mut total_score = 0;
+    for round in input.lines() {
+        let (opponent_shape, round_outcome) = parse_round_info(round);
+        let player_shape = match round_outcome {
+            RoundOutcome::Win => opponent_shape.get_victor(),
+            RoundOutcome::Draw => opponent_shape,
+            RoundOutcome::Lose => opponent_shape.get_loser(),
+        };
+        total_score += round_outcome as i32 + player_shape as i32;
     }
-    total
+    return total_score
 }
 
-fn calculate_round_score(match_info:&str) -> i32 {
-    let (opponent_shape, player_shape) = match_string_to_shape(match_info);    
-    let mut score = player_shape as i32;
-    let match_result_score = match (player_shape, opponent_shape) {
-        (HandShape::Rock, HandShape::Scissors) | (HandShape::Paper, HandShape::Rock) | (HandShape::Scissors, HandShape::Paper) => 6,
-        (HandShape::Rock, HandShape::Rock) | (HandShape::Paper, HandShape::Paper) | (HandShape::Scissors, HandShape::Scissors) => 3,
-        _ => 0,
-    };
-    score += match_result_score;
-    score
+fn parse_round_info(input: &str) -> (HandShape, RoundOutcome) {
+    let opponent_shape = input.chars().nth(0).unwrap();
+    let outcome = input.chars().nth(2).unwrap();
+    (HandShape::from_char(opponent_shape),RoundOutcome::from_char(outcome))
 }
 
-fn match_string_to_shape(match_string:&str) -> (HandShape,HandShape) {
-    let opponent_shape = match_string.chars().next().unwrap();
-    let player_shape = match_string.chars().last().unwrap();
-    
-    (HandShape::from_char(opponent_shape), HandShape::from_char(player_shape))
+#[derive(PartialEq, Clone, Copy)]
+enum RoundOutcome {
+    Win = 6,
+    Draw = 3,
+    Lose = 0,
+}
+impl RoundOutcome {
+    fn from_char(outcome_char: char) -> Self {
+        match outcome_char {
+            'X' => RoundOutcome::Lose,
+            'Y' => RoundOutcome::Draw,
+            'Z' => RoundOutcome::Win,
+            n => panic!("Unexpected conversion from char {n} to outcome"),
+        }
+    }
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -45,11 +53,21 @@ enum HandShape {
 impl HandShape {
     fn from_char(shape_char: char) -> Self {
     match shape_char {
-        'A'|'X' => HandShape::Rock,
-        'B'|'Y' => HandShape::Paper,
-        'C'|'Z' => HandShape::Scissors,
-        _ => panic!("Invalid char"),
+        'A' => HandShape::Rock,
+        'B' => HandShape::Paper,
+        'C' => HandShape::Scissors,
+         n => panic!("Unexpected conversion from char {n} to shape"),
         }
+    }
+    fn get_victor(&self) -> HandShape {
+        match self {
+            HandShape::Rock => HandShape::Paper,
+            HandShape::Paper => HandShape::Scissors,
+            HandShape::Scissors => HandShape::Rock,
+        }
+    }
+    fn get_loser(&self) -> HandShape {
+        self.get_victor().get_victor()
     }    
 }
 
@@ -57,9 +75,9 @@ impl HandShape {
 mod tests {
     use super::*;
     #[test]
-    fn strategy_guide() {
+    fn solve_test() {
         let input = fs::read_to_string("..\\assets\\test.txt").expect("Could not Parse File");
         
-        assert_eq!(15, calculate_total_score(&input));
+        assert_eq!(12, solve(&input));
     }
 }
