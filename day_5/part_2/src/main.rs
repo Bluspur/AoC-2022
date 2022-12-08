@@ -12,10 +12,14 @@ fn solve(input: &str) -> String {
     let mut stack_map = parse_setup(setup);
 
     for instruction in parse_instructions(instructions) {
+        let mut crate_buffer:Vec<char> = Vec::new();
         for _ in 0..instruction.quantity {
             let item_crate = stack_map[instruction.take_from - 1].pop().unwrap();
-            stack_map[instruction.deliver_to - 1].push(item_crate);
+            crate_buffer.push(item_crate);
         }
+        crate_buffer.reverse();
+        
+        stack_map[instruction.deliver_to - 1].append(&mut crate_buffer);
     }
 
     let mut output = String::new();
@@ -73,7 +77,7 @@ mod tests {
     fn solve_test() {
         let input = fs::read_to_string("..\\assets\\test.txt").expect("Could not Parse File");
 
-        assert_eq!("CMZ".to_string(), solve(&input));
+        assert_eq!("MCD".to_string(), solve(&input));
     }
 
     #[test]
